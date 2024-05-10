@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Project.Collection;
 using static System.Console;
@@ -15,6 +16,8 @@ using static Program;
 
 partial class Node
 {
+    public static int CurrentLinkNumber;
+    
     // (\+|-)? = could have one positive or negative sign  \d+ = continues with one or more digits  \.? = zero or one dot  \d* = zero or more digits
     const string MatchFloats = @"(-|\+)?\d+\.?\d*";
     
@@ -136,7 +139,8 @@ partial class Node
             AddProp("Mobility=Static");
         }
 
-        if (TryExtractKeywordAfter(Definition, "Begin Polygon Texture=", out var texRef)) // Fix material references for brushes
+        // Fix material references for brushes, add link number, conver lightmap resolution parameter name
+        if (TryExtractKeywordAfter(Definition, "Begin Polygon Texture=", out var texRef))
         {
             if (FindBestMatchForAsset(texRef, out var remappedUrl))
                 Definition = Regex.Replace(Definition, @"Begin Polygon Texture=[^\s=]+"/*Replace start to the end of texture ref url with:*/, $"Begin Polygon Texture={remappedUrl}");
@@ -366,6 +370,28 @@ partial class Node
             AddProp($"RelativeScale3D=(X={finalValue.x},Y={finalValue.y},Z={finalValue.z})");
         }
 
+        // Reset link number
+        if (Definition.Contains("Begin PolyList"))
+        {
+            CurrentLinkNumber = 0;
+        }
+        // Add link number and rename shadow maps parameter
+        else if (Definition.Contains("Begin Polygon"))
+        {
+            // Link number
+            if (!Definition.Contains(" Link="))
+            {
+                Definition += $" Link={CurrentLinkNumber++}";
+            }
+
+            // Shadow map resolution
+            Definition = Definition.Replace("ShadowMapScale", "LightMapScale");
+        }
+        /*else if (thisClass == "Brush" && Definition.Contains(" Class=Brush "))
+        {
+            Definition = Definition.Replace(" Class=Brush ", " Class=/Script/Engine.Brush ");
+            WriteLineC(ConsoleColor.Blue, $"### EXTEND BRUSH CLASS\n{Definition}");
+        }*/
 
         // Recurse into children
         if (Children != null)
