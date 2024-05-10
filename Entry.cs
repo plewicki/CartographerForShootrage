@@ -387,11 +387,6 @@ partial class Node
             // Shadow map resolution
             Definition = Definition.Replace("ShadowMapScale", "LightMapScale");
         }
-        /*else if (thisClass == "Brush" && Definition.Contains(" Class=Brush "))
-        {
-            Definition = Definition.Replace(" Class=Brush ", " Class=/Script/Engine.Brush ");
-            WriteLineC(ConsoleColor.Blue, $"### EXTEND BRUSH CLASS\n{Definition}");
-        }*/
 
         // Recurse into children
         if (Children != null)
@@ -1026,10 +1021,12 @@ public class Program
             if (clipboard)
             {
                 sOut.Flush();
-                WindowsClipboard.SetText( (sOut as StringWriter)!.ToString() );
+                string output = (sOut as StringWriter)!.ToString();
+                
+                WindowsClipboard.SetText(ParseOutput(output));
             }
         }
-        
+
         if(Node.TypesFiltered.Count != 0)
             WriteLine( $"Skipped unhandled types '{string.Join(", ", Node.TypesFiltered)}'" );
         WriteLine( "-----------" );
@@ -1040,7 +1037,24 @@ public class Program
         ReadLine();
     }
 
+    public static string ParseOutput(string output)
+    {
+        string parsedOutput = null;
+        using (StringReader reader = new StringReader(output))
+        {
+            string line;
+            while ((line = reader.ReadLine()) != null)
+            {
+                // Thees two rows provides valid materials references
+                line = line.Replace(" Class=Brush ", " Class=/Script/Engine.Brush ");
+                line = line.Replace(" Archetype=Brush'Engine.Default__Brush' ", " Archetype=/Script/Engine.Brush'/Script/Engine.Default__Brush' ");
 
+                parsedOutput += line + "\n";
+            }
+        }
+
+        return parsedOutput;
+    }
 
     public static void WriteLineC( ConsoleColor color, string message )
     {
