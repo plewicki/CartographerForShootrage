@@ -135,7 +135,10 @@ partial class Node
 
             parent.AddProp("LightComponent=\"LightComponent0\"");
             parent.AddProp("RootComponent=\"LightComponent0\"");
-            AddProp("CastShadows=False");
+
+            // For Shootrage enable shadows by default:
+            //AddProp("CastShadows=False");
+
             AddProp("Mobility=Static");
         }
 
@@ -264,6 +267,8 @@ partial class Node
             int dummyIndex = 0;
             Properties[i] = name switch
             {
+                "CastStaticShadows" when thisClass?.Contains("Light") == true
+                    => $"CastShadows={stringVal}",
                 "bEnabled" when thisClass?.Contains("Light") == true
                     => $"bVisible={stringVal}",
                 "LightingChannels" when stringVal.Contains("Static=False")
